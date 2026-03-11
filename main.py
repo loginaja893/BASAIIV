@@ -542,3 +542,71 @@ FLOWS: Dict[int, List[str]] = {
 def get_flow(category: int) -> List[str]:
     return list(FLOWS.get(category, []))
 
+
+# -----------------------------------------------------------------------------
+# Common issues and resolution snippets
+# -----------------------------------------------------------------------------
+
+COMMON_ISSUES: Dict[int, List[str]] = {
+    1: ["No internet access", "Slow connection", "DNS resolution failed", "Limited connectivity", "Wi‑Fi drops frequently"],
+    2: ["Disk full", "Slow disk access", "CHKDSK errors", "Drive not detected", "Permission denied"],
+    3: ["PC slow", "Blue screen", "High CPU usage", "Updates failing", "Startup very slow"],
+    4: ["Page not loading", "Slow browsing", "Certificate error", "Extension conflict", "Out of memory"],
+    5: ["Device not recognized", "Yellow exclamation Device Manager", "Printer offline", "USB device failed"],
+    6: ["Battery drains fast", "Will not charge", "Sleep not working", "Adapter not recognized"],
+    7: ["No signal", "Wrong resolution", "Screen flicker", "Second monitor not detected"],
+    8: ["No sound", "Wrong output device", "Crackling/popping", "Microphone not working"],
+}
+
+RESOLUTION_SNIPPETS: Dict[int, List[str]] = {
+    1: ["Restarted router and modem; connectivity restored.", "Flushed DNS and changed to 1.1.1.1; resolution fixed."],
+    2: ["Freed space with Disk Cleanup and Storage Sense; OK.", "Ran CHKDSK /f; bad sectors resolved."],
+    3: ["Disabled startup apps; boot time improved.", "Installed pending updates; stability improved."],
+    4: ["Cleared cache and cookies; site loads.", "Disabled extension; conflict resolved."],
+    5: ["Reinstalled driver from manufacturer; device OK.", "Rolled back driver; stability restored."],
+    6: ["Calibrated battery; percentage accurate.", "Updated BIOS; charge detection fixed."],
+    7: ["Reseated cable; signal restored.", "Updated graphics driver; resolution list updated."],
+    8: ["Set default playback device; sound working.", "Updated audio driver; crackling gone."],
+}
+
+
+def get_common_issues(category: int) -> List[str]:
+    return list(COMMON_ISSUES.get(category, []))
+
+
+def get_resolution_snippets(category: int) -> List[str]:
+    return list(RESOLUTION_SNIPPETS.get(category, []))
+
+
+# -----------------------------------------------------------------------------
+# Extended hints (extra steps per category)
+# -----------------------------------------------------------------------------
+
+EXTENDED_HINTS: Dict[int, List[str]] = {
+    1: [
+        "Verify no IP conflict with another device.",
+        "Check router admin page for blocked clients.",
+        "Test with Ethernet if on Wi‑Fi to rule out wireless issues.",
+        "Review recent router firmware updates.",
+        "Confirm ISP outage status.",
+        "Try tethering to phone to test if PC stack is fine.",
+        "Inspect network adapter power management (allow off = no).",
+        "Check for duplicate IPv4 addresses.",
+        "Validate subnet mask and default gateway.",
+        "Run netsh winsock reset (Windows).",
+    ],
+    2: [
+        "Check Recycle Bin size and empty if needed.",
+        "Use TreeSize or WinDirStat to find large folders.",
+        "Verify SSD trim is enabled (Windows: fsutil behavior query DisableDeleteNotify).",
+        "Check for Windows.old and remove via Disk Cleanup.",
+        "Review cloud sync selective sync settings.",
+        "Ensure no runaway download or temp folder.",
+        "Check virtual memory / page file size.",
+        "Consider moving user profile to another drive if system drive full.",
+        "Verify external drive is not in read-only or failing.",
+        "Run Storage Sense (Windows 10/11) to auto-clean.",
+    ],
+    3: [
+        "Check Windows Update history for failed updates.",
+        "Review reliability monitor (perfmon /rel).",
