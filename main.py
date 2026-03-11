@@ -66,3 +66,71 @@ class BASAIIVState:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
+            "sessions": {
+                k: {
+                    "session_id": v.session_id,
+                    "reporter_hex": v.reporter_hex,
+                    "category": v.category,
+                    "opened_at_ts": v.opened_at_ts,
+                    "resolved": v.resolved,
+                    "resolution_hash": v.resolution_hash,
+                    "outcome": v.outcome,
+                    "step_count": v.step_count,
+                    "steps": v.steps,
+                }
+                for k, v in self.sessions.items()
+            },
+            "category_counts": self.category_counts,
+            "category_caps": self.category_caps,
+            "session_counter": self.session_counter,
+            "paused": self.paused,
+        }
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> BASAIIVState:
+        state = cls()
+        state.session_counter = d.get("session_counter", 0)
+        state.paused = d.get("paused", False)
+        state.category_counts = d.get("category_counts", {i: 0 for i in range(1, CATEGORY_COUNT + 1)})
+        state.category_caps = d.get("category_caps", {i: MAX_SESSIONS_PER_CATEGORY for i in range(1, CATEGORY_COUNT + 1)})
+        for k, v in d.get("sessions", {}).items():
+            state.sessions[k] = DiagnosticSession(
+                session_id=v["session_id"],
+                reporter_hex=v["reporter_hex"],
+                category=v["category"],
+                opened_at_ts=v["opened_at_ts"],
+                resolved=v["resolved"],
+                resolution_hash=v["resolution_hash"],
+                outcome=v["outcome"],
+                step_count=v["step_count"],
+                steps=v.get("steps", []),
+            )
+        return state
+
+
+# -----------------------------------------------------------------------------
+# Category labels
+# -----------------------------------------------------------------------------
+
+CATEGORY_LABELS = {
+    1: "Network & connectivity",
+    2: "Storage & disk",
+    3: "Operating system",
+    4: "Browser & web",
+    5: "Drivers & peripherals",
+    6: "Power & battery",
+    7: "Display & graphics",
+    8: "Audio & sound",
+}
+
+
+def get_category_label(category: int) -> str:
+    return CATEGORY_LABELS.get(category, "Unknown")
+
+
+# -----------------------------------------------------------------------------
+# Hints per category (AI-helper suggested steps)
+# -----------------------------------------------------------------------------
+
+HINTS: Dict[int, List[str]] = {
+    1: [
