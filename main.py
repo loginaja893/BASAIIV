@@ -338,3 +338,71 @@ class SessionManager:
             raise RuntimeError("BASAIIV: triage keeper only")
         s = self.state.sessions[session_id]
         if s.resolved:
+            raise RuntimeError("BASAIIV: session already resolved")
+        s.resolved = True
+        s.resolution_hash = resolution_hash
+        s.outcome = outcome
+
+    def get_session(self, session_id: str) -> Optional[DiagnosticSession]:
+        return self.state.sessions.get(session_id)
+
+    def list_session_ids(self) -> List[str]:
+        return list(self.state.sessions.keys())
+
+    def set_category_cap(self, category: int, cap: int) -> None:
+        if category < 1 or category > CATEGORY_COUNT:
+            raise ValueError("BASAIIV: invalid category")
+        self.state.category_caps[category] = max(0, cap)
+
+    def set_paused(self, paused: bool) -> None:
+        self.state.paused = paused
+
+    def save(self, path: str | Path) -> None:
+        Path(path).write_text(json.dumps(self.state.to_dict(), indent=2), encoding="utf-8")
+
+    def load(self, path: str | Path) -> None:
+        self.state = BASAIIVState.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
+
+
+# -----------------------------------------------------------------------------
+# Report builder
+# -----------------------------------------------------------------------------
+
+
+def build_report(session: DiagnosticSession, include_hints: bool = True) -> str:
+    lines = [
+        "# BASAIIV Report",
+        f"Generated: {datetime.now(timezone.utc).isoformat()}",
+        "",
+        "## Session",
+        f"Session ID: {session.session_id}",
+        f"Reporter: {session.reporter_hex}",
+        f"Category: {session.category} ({get_category_label(session.category)}) — {get_category_long_name(session.category)}",
+        f"Opened: {datetime.fromtimestamp(session.opened_at_ts, tz=timezone.utc).isoformat()}",
+        f"Resolved: {session.resolved}",
+        f"Outcome: {session.outcome}",
+        f"Step count: {session.step_count}",
+        "",
+    ]
+    if include_hints:
+        lines.append("## Suggested steps")
+        for i, h in enumerate(get_hints(session.category), 1):
+            lines.append(f"{i}. {h}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+# -----------------------------------------------------------------------------
+# Stats
+# -----------------------------------------------------------------------------
+
+
+def stats_summary(manager: SessionManager) -> str:
+    total = len(manager.state.sessions)
+    resolved = sum(1 for s in manager.state.sessions.values() if s.resolved)
+    lines = [
+        f"Total sessions: {total}",
+        f"Resolved: {resolved}",
+        "By category:",
+    ]
+    for c in range(1, CATEGORY_COUNT + 1):
