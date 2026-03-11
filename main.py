@@ -678,3 +678,71 @@ EXTENDED_HINTS: Dict[int, List[str]] = {
         "Ensure no app is holding exclusive access.",
         "Try WASAPI shared vs exclusive in supported apps.",
         "Verify no hardware mute or physical switch.",
+    ],
+}
+
+
+def get_extended_hints(category: int) -> List[str]:
+    return list(EXTENDED_HINTS.get(category, []))
+
+
+# -----------------------------------------------------------------------------
+# Check step names (for reporting)
+# -----------------------------------------------------------------------------
+
+def get_check_name(category: int, step_index: int) -> str:
+    names: Dict[Tuple[int, int], str] = {
+        (1, 0): "Verify physical link",
+        (1, 1): "Ping gateway",
+        (1, 2): "Ping external DNS",
+        (1, 3): "Flush DNS cache",
+        (1, 4): "Check adapter status",
+        (1, 5): "Review firewall",
+        (2, 0): "Check free space",
+        (2, 1): "Run Disk Cleanup",
+        (2, 2): "Identify large folders",
+        (2, 3): "Clear temp and cache",
+        (2, 4): "Empty Recycle Bin",
+        (2, 5): "Run CHKDSK",
+        (3, 0): "Restart computer",
+        (3, 1): "Check Task Manager",
+        (3, 2): "Review startup programs",
+        (3, 3): "Install updates",
+        (3, 4): "Run SFC/DISM",
+        (3, 5): "Check Event Viewer",
+        (4, 0): "Try incognito",
+        (4, 1): "Clear cache/cookies",
+        (4, 2): "Disable extensions",
+        (4, 3): "Update browser",
+        (4, 4): "Check proxy/DNS",
+        (5, 0): "Check Device Manager",
+        (5, 1): "Uninstall and rescan",
+        (5, 2): "Windows Update driver",
+        (5, 3): "Manufacturer driver",
+        (6, 0): "Check power plan",
+        (6, 1): "Review background apps",
+        (6, 2): "Battery report",
+        (6, 3): "Calibrate battery",
+        (7, 0): "Check cable",
+        (7, 1): "Set resolution/refresh",
+        (7, 2): "Update graphics driver",
+        (7, 3): "Roll back driver",
+        (8, 0): "Check volume/mute",
+        (8, 1): "Set output device",
+        (8, 2): "Audio troubleshooter",
+        (8, 3): "Update audio driver",
+    }
+    return names.get((category, step_index), f"Check step {step_index}")
+
+
+# -----------------------------------------------------------------------------
+# Export session to text
+# -----------------------------------------------------------------------------
+
+def export_session_to_text(session: DiagnosticSession) -> str:
+    lines = [
+        f"Session ID: {session.session_id}",
+        f"Reporter: {session.reporter_hex}",
+        f"Category: {session.category} ({get_category_label(session.category)})",
+        f"Opened: {datetime.fromtimestamp(session.opened_at_ts, tz=timezone.utc).isoformat()}",
+        f"Resolved: {session.resolved}",
