@@ -270,3 +270,71 @@ def session_id_from(reporter_hex: str, category: int, nonce: int) -> str:
     payload = f"{NAMESPACE}:{reporter_hex}:{category}:{nonce}"
     return sha256_hex(payload.encode("utf-8"))
 
+
+def step_hash_from(session_id: str, step_index: int, description: str) -> str:
+    payload = f"{session_id}:{step_index}:{description or ''}"
+    return sha256_hex(payload.encode("utf-8"))
+
+
+def resolution_hash_from(session_id: str, summary: str) -> str:
+    payload = f"{session_id}:{summary or ''}"
+    return sha256_hex(payload.encode("utf-8"))
+
+
+# -----------------------------------------------------------------------------
+# Session manager
+# -----------------------------------------------------------------------------
+
+
+class SessionManager:
+    def __init__(self, state: Optional[BASAIIVState] = None):
+        self.state = state or BASAIIVState()
+
+    def open_session(self, reporter_hex: str, category: int) -> str:
+        if self.state.paused:
+            raise RuntimeError("BASAIIV: registry paused")
+        if category < 1 or category > CATEGORY_COUNT:
+            raise ValueError("BASAIIV: invalid category")
+        if self.state.category_counts.get(category, 0) >= self.state.category_caps.get(category, MAX_SESSIONS_PER_CATEGORY):
+            raise RuntimeError("BASAIIV: category cap reached")
+        reporter_hex = reporter_hex or ZERO_HEX
+        self.state.session_counter += 1
+        sid = session_id_from(reporter_hex, category, self.state.session_counter)
+        if sid in self.state.sessions:
+            raise RuntimeError("BASAIIV: session id collision")
+        self.state.sessions[sid] = DiagnosticSession(
+            session_id=sid,
+            reporter_hex=reporter_hex,
+            category=category,
+            opened_at_ts=datetime.now(timezone.utc).timestamp(),
+            resolved=False,
+            resolution_hash="",
+            outcome=OUTCOME_NONE,
+            step_count=0,
+            steps=[],
+        )
+        self.state.category_counts[category] = self.state.category_counts.get(category, 0) + 1
+        return sid
+
+    def record_step(self, session_id: str, step_index: int, step_hash: str) -> None:
+        if session_id not in self.state.sessions:
+            raise KeyError("BASAIIV: session not found")
+        s = self.state.sessions[session_id]
+        if s.resolved:
+            raise RuntimeError("BASAIIV: session already resolved")
+        if step_index < 0 or step_index >= MAX_STEPS_PER_SESSION:
+            raise ValueError("BASAIIV: step index out of range")
+        while len(s.steps) <= step_index:
+            s.steps.append("")
+        s.steps[step_index] = step_hash
+        s.step_count = max(s.step_count, step_index + 1)
+
+    def attest_resolution(self, session_id: str, resolution_hash: str, outcome: int, triage_keeper: str) -> None:
+        if session_id not in self.state.sessions:
+            raise KeyError("BASAIIV: session not found")
+        if outcome < 0 or outcome >= OUTCOME_CAP:
+            raise ValueError("BASAIIV: outcome out of range")
+        if triage_keeper != TRIAGE_KEEPER_HEX:
+            raise RuntimeError("BASAIIV: triage keeper only")
+        s = self.state.sessions[session_id]
+        if s.resolved:
