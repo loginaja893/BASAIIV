@@ -406,3 +406,71 @@ def stats_summary(manager: SessionManager) -> str:
         "By category:",
     ]
     for c in range(1, CATEGORY_COUNT + 1):
+        count = manager.state.category_counts.get(c, 0)
+        lines.append(f"  {get_category_label(c)}: {count}")
+    return "\n".join(lines)
+
+
+# -----------------------------------------------------------------------------
+# Diagnostic flows (step-by-step scripts per category)
+# -----------------------------------------------------------------------------
+
+FLOWS: Dict[int, List[str]] = {
+    1: [
+        "Start: User reports connectivity issue.",
+        "Step 1: Confirm scope (one device vs all, one site vs all).",
+        "Step 2: Check physical link (cable/Wi‑Fi icon).",
+        "Step 3: Run ping to gateway.",
+        "Step 4: Run ping to 8.8.8.8.",
+        "Step 5: If gateway fails, check router and NIC.",
+        "Step 6: If 8.8.8.8 fails, check DNS or WAN.",
+        "Step 7: Flush DNS cache.",
+        "Step 8: Try different DNS server.",
+        "Step 9: Disable VPN/proxy temporarily.",
+        "Step 10: Check firewall rules.",
+        "Step 11: Restart network stack (netsh winsock reset).",
+        "Step 12: Escalate to ISP or network admin if WAN issue.",
+    ],
+    2: [
+        "Start: User reports disk full or errors.",
+        "Step 1: Check free space (all volumes).",
+        "Step 2: Run Disk Cleanup or Storage Sense.",
+        "Step 3: Identify largest folders (TreeSize/WinDirStat).",
+        "Step 4: Remove temp, cache, or old installers.",
+        "Step 5: Empty Recycle Bin and clear downloads.",
+        "Step 6: Check cloud sync local cache size.",
+        "Step 7: Run CHKDSK if errors reported.",
+        "Step 8: Check SMART status if available.",
+        "Step 9: Consider moving user data to another drive.",
+        "Step 10: Disable hibernation to free space if needed.",
+        "Step 11: Remove Windows.old if present after upgrade.",
+        "Step 12: Escalate to backup/replace if hardware failure.",
+    ],
+    3: [
+        "Start: User reports OS slowness, crash, or error.",
+        "Step 1: Restart the computer.",
+        "Step 2: Check Task Manager for high CPU/memory.",
+        "Step 3: Review startup programs and disable unnecessary.",
+        "Step 4: Install pending Windows/macOS updates.",
+        "Step 5: Run sfc /scannow (Windows) or diskutil verifyVolume (macOS).",
+        "Step 6: Check Event Viewer or Console for errors.",
+        "Step 7: Boot Safe Mode to isolate driver/software.",
+        "Step 8: Restore to previous restore point if available.",
+        "Step 9: Run memory diagnostic.",
+        "Step 10: Disable antivirus temporarily to test.",
+        "Step 11: Create new user profile to test corruption.",
+        "Step 12: Consider reset (keep files) or reinstall as last resort.",
+    ],
+    4: [
+        "Start: User reports browser not loading or error.",
+        "Step 1: Try incognito/private window.",
+        "Step 2: Clear cache and cookies for the site.",
+        "Step 3: Disable extensions one by one.",
+        "Step 4: Update browser to latest version.",
+        "Step 5: Check proxy and DNS in browser settings.",
+        "Step 6: Try another browser to isolate.",
+        "Step 7: Disable hardware acceleration.",
+        "Step 8: Reset browser settings to default.",
+        "Step 9: Check VPN or corporate proxy.",
+        "Step 10: Verify certificate and date/time.",
+        "Step 11: Test on another network.",
