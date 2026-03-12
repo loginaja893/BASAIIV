@@ -814,3 +814,71 @@ def get_category_long_name(category: int) -> str:
         4: "Browser & web (Chrome, Edge, Firefox – loading, extensions, certificates)",
         5: "Drivers & peripherals (USB, printer, webcam, Device Manager)",
         6: "Power & battery (drain, charging, sleep, adapter)",
+        7: "Display & graphics (resolution, driver, cable, multi-monitor)",
+        8: "Audio & sound (output device, driver, volume, mic)",
+    }
+    return long_names.get(category, "Unknown category")
+
+
+def random_resolution_snippet(category: int) -> str:
+    """Return a random resolution snippet for the given category (for testing or placeholders)."""
+    snippets = get_resolution_snippets(category)
+    return random.choice(snippets) if snippets else "Resolution recorded."
+
+
+# -----------------------------------------------------------------------------
+# BASAIIV health and recommendation helpers
+# -----------------------------------------------------------------------------
+
+
+def session_health_summary(manager: SessionManager) -> str:
+    """One-line health summary: total sessions, resolved, open, and per-category counts."""
+    total = len(manager.state.sessions)
+    resolved = sum(1 for s in manager.state.sessions.values() if s.resolved)
+    open_count = total - resolved
+    by_cat = ", ".join(f"{get_category_label(c)}={manager.state.category_counts.get(c, 0)}" for c in range(1, CATEGORY_COUNT + 1))
+    return f"BASAIIV health: {total} total, {resolved} resolved, {open_count} open. By category: {by_cat}."
+
+
+def recommend_next_action(session: DiagnosticSession) -> str:
+    """Suggest next step for a session based on step count and category."""
+    if session.resolved:
+        return "Session already resolved. No further action needed."
+    flow_steps = get_flow(session.category)
+    if not flow_steps:
+        return get_first_hint(session.category)
+    next_idx = min(session.step_count, len(flow_steps) - 1)
+    return flow_steps[next_idx] if next_idx < len(flow_steps) else "Consider escalating or closing the session."
+
+
+def session_age_seconds(session: DiagnosticSession) -> float:
+    """Return age of session in seconds since opened_at_ts."""
+    return datetime.now(timezone.utc).timestamp() - session.opened_at_ts
+
+
+def stale_sessions(manager: SessionManager, max_age_sec: float = SESSION_TIMEOUT_SEC) -> List[str]:
+    """Return session IDs that are open and older than max_age_sec."""
+    return [
+        sid for sid, s in manager.state.sessions.items()
+        if not s.resolved and session_age_seconds(s) > max_age_sec
+    ]
+
+
+# -----------------------------------------------------------------------------
+# CLI
+# -----------------------------------------------------------------------------
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=f"{APP_NAME} — diagnostic support helper")
+    parser.add_argument("--state", default=DEFAULT_STATE_FILE, help="State file path")
+    sub = parser.add_subparsers(dest="cmd", help="Commands")
+
+    p_open = sub.add_parser("open", help="Open a session")
+    p_open.add_argument("reporter", nargs="?", default=ZERO_HEX, help="Reporter address hex")
+    p_open.add_argument("category", type=int, help="Category 1-8")
+
+    p_hint = sub.add_parser("hint", help="List hints for category")
+    p_hint.add_argument("category", type=int, help="Category 1-8")
+
+    p_flow = sub.add_parser("flow", help="List flow steps for category")
