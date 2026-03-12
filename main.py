@@ -882,3 +882,71 @@ def main() -> int:
     p_hint.add_argument("category", type=int, help="Category 1-8")
 
     p_flow = sub.add_parser("flow", help="List flow steps for category")
+    p_flow.add_argument("category", type=int, help="Category 1-8")
+
+    p_list = sub.add_parser("list", help="List session IDs")
+
+    p_get = sub.add_parser("get", help="Get session details")
+    p_get.add_argument("session_id", help="Session ID (hash)")
+
+    p_report = sub.add_parser("report", help="Build report for session")
+    p_report.add_argument("session_id", help="Session ID")
+
+    p_stats = sub.add_parser("stats", help="Show stats summary")
+
+    p_issues = sub.add_parser("issues", help="Common issues for category")
+    p_issues.add_argument("category", type=int, help="Category 1-8")
+
+    p_resolutions = sub.add_parser("resolutions", help="Resolution snippets for category")
+    p_resolutions.add_argument("category", type=int, help="Category 1-8")
+
+    p_export = sub.add_parser("export", help="Export state to JSON")
+    p_export.add_argument("--output", "-o", help="Output path")
+
+    p_ext = sub.add_parser("extended-hint", help="Extended hints for category")
+    p_ext.add_argument("category", type=int, help="Category 1-8")
+
+    sub.add_parser("version", help="Show version")
+    sub.add_parser("categories", help="List categories and counts")
+    sub.add_parser("help", help="Full help text")
+
+    p_outcomes = sub.add_parser("outcomes", help="Outcome statistics")
+    p_templates = sub.add_parser("templates", help="Step templates for category")
+    p_templates.add_argument("category", type=int, help="Category 1-8")
+    p_check_name = sub.add_parser("check-name", help="Check step name for category and index")
+    p_check_name.add_argument("category", type=int, help="Category 1-8")
+    p_check_name.add_argument("step", type=int, help="Step index")
+
+    p_export_session = sub.add_parser("export-session", help="Export one session to text")
+    p_export_session.add_argument("session_id", help="Session ID")
+
+    p_health = sub.add_parser("health", help="One-line health summary")
+    p_recommend = sub.add_parser("recommend", help="Recommend next action for a session")
+    p_recommend.add_argument("session_id", help="Session ID")
+
+    args = parser.parse_args()
+    state_path = Path(args.state)
+
+    manager = SessionManager()
+    if state_path.exists():
+        try:
+            manager.load(state_path)
+        except Exception as e:
+            print(f"Warning: could not load state: {e}", file=sys.stderr)
+
+    if args.cmd == "open":
+        try:
+            sid = manager.open_session(args.reporter, args.category)
+            print(f"Session opened: {sid}")
+            print(f"First hint: {get_first_hint(args.category)}")
+            manager.save(state_path)
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+        return 0
+
+    if args.cmd == "hint":
+        for i, h in enumerate(get_hints(args.category), 1):
+            print(f"{i}. {h}")
+        return 0
+
