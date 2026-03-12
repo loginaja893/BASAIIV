@@ -1018,3 +1018,71 @@ def main() -> int:
         return 0
 
     if args.cmd == "export-session":
+        s = manager.get_session(args.session_id)
+        if not s:
+            print("Session not found.", file=sys.stderr)
+            return 1
+        print(export_session_to_text(s))
+        return 0
+
+    if args.cmd == "outcomes":
+        print(outcome_stats(manager))
+        return 0
+
+    if args.cmd == "templates":
+        for t in get_step_templates(args.category):
+            print(t)
+        return 0
+
+    if args.cmd == "check-name":
+        print(get_check_name(args.category, args.step))
+        return 0
+
+    if args.cmd == "health":
+        print(session_health_summary(manager))
+        return 0
+
+    if args.cmd == "recommend":
+        s = manager.get_session(args.session_id)
+        if not s:
+            print("Session not found.", file=sys.stderr)
+            return 1
+        print(recommend_next_action(s))
+        return 0
+
+    if args.cmd is None:
+        return run_interactive(manager, state_path)
+
+    parser.print_help()
+    return 0
+
+
+def run_interactive(manager: SessionManager, state_path: Path) -> int:
+    print(f"{APP_NAME} — diagnostic support. Commands: open, hint, flow, list, get, report, stats, issues, resolutions, extended-hint, categories, version, help, health, recommend, quit.")
+    while True:
+        try:
+            line = input("basaiv> ").strip()
+        except EOFError:
+            break
+        if not line:
+            continue
+        parts = line.split()
+        cmd = parts[0].lower()
+        if cmd in ("quit", "exit", "q"):
+            manager.save(state_path)
+            break
+        try:
+            if cmd == "open" and len(parts) >= 2:
+                if len(parts) >= 3:
+                    reporter, cat = parts[1], int(parts[2])
+                else:
+                    reporter, cat = ZERO_HEX, int(parts[1])
+                sid = manager.open_session(reporter, cat)
+                print(f"Session opened: {sid}")
+                print(f"First hint: {get_first_hint(cat)}")
+                manager.save(state_path)
+            elif cmd == "hint" and len(parts) >= 2:
+                cat = int(parts[1])
+                for i, h in enumerate(get_hints(cat), 1):
+                    print(f"{i}. {h}")
+            elif cmd == "flow" and len(parts) >= 2:
