@@ -746,3 +746,71 @@ def export_session_to_text(session: DiagnosticSession) -> str:
         f"Category: {session.category} ({get_category_label(session.category)})",
         f"Opened: {datetime.fromtimestamp(session.opened_at_ts, tz=timezone.utc).isoformat()}",
         f"Resolved: {session.resolved}",
+        f"Outcome: {session.outcome}",
+        f"Step count: {session.step_count}",
+    ]
+    for i, h in enumerate(session.steps):
+        if h:
+            lines.append(f"  Step {i}: {h}")
+    return "\n".join(lines)
+
+
+# -----------------------------------------------------------------------------
+# Version and help
+# -----------------------------------------------------------------------------
+
+def get_version_string() -> str:
+    return f"{APP_NAME} v{APP_VERSION} ({NAMESPACE})"
+
+
+def get_full_help() -> str:
+    return (
+        "BASAIIV is a diagnostic support helper for day-to-day tech issues.\n"
+        "Categories: 1=Network, 2=Disk, 3=OS, 4=Browser, 5=Driver, 6=Power, 7=Display, 8=Audio.\n"
+        "Commands: open, hint, flow, list, get, report, stats, issues, resolutions, export, extended-hint, version, categories, help, health, recommend."
+    )
+
+
+# -----------------------------------------------------------------------------
+# Outcome statistics
+# -----------------------------------------------------------------------------
+
+def outcome_stats(manager: SessionManager) -> str:
+    resolved = sum(1 for s in manager.state.sessions.values() if s.resolved and s.outcome == OUTCOME_RESOLVED)
+    escalated = sum(1 for s in manager.state.sessions.values() if s.resolved and s.outcome == OUTCOME_ESCALATED)
+    deferred = sum(1 for s in manager.state.sessions.values() if s.resolved and s.outcome == OUTCOME_DEFERRED)
+    return f"Resolved: {resolved}\nEscalated: {escalated}\nDeferred: {deferred}"
+
+
+# -----------------------------------------------------------------------------
+# Step templates (predefined step labels per category)
+# -----------------------------------------------------------------------------
+
+STEP_TEMPLATES: Dict[int, List[str]] = {
+    1: [f"Network step {i+1}: Verify connectivity" if i % 3 == 0 else f"Network step {i+1}: Check configuration" if i % 3 == 1 else f"Network step {i+1}: Test path" for i in range(24)],
+    2: [f"Disk step {i+1}: Check space or health" if i % 2 == 0 else f"Disk step {i+1}: Run tool or cleanup" for i in range(24)],
+    3: [f"OS step {i+1}: Update" if i % 4 == 0 else f"OS step {i+1}: Restart" if i % 4 == 1 else f"OS step {i+1}: Scan" if i % 4 == 2 else f"OS step {i+1}: Reset" for i in range(28)],
+    4: [f"Browser step {i+1}: Clear cache, extension, or setting" for i in range(20)],
+    5: [f"Driver step {i+1}: Update, rollback, or reinstall device" for i in range(22)],
+    6: [f"Power step {i+1}: Calibrate, plan, or hardware check" for i in range(18)],
+    7: [f"Display step {i+1}: Cable, driver, or resolution" for i in range(20)],
+    8: [f"Audio step {i+1}: Output device or driver" for i in range(18)],
+}
+
+
+def get_step_templates(category: int) -> List[str]:
+    return list(STEP_TEMPLATES.get(category, []))
+
+
+# -----------------------------------------------------------------------------
+# Category long names (for reports)
+# -----------------------------------------------------------------------------
+
+def get_category_long_name(category: int) -> str:
+    long_names = {
+        1: "Network & connectivity (Wi‑Fi, Ethernet, DNS, VPN)",
+        2: "Storage & disk (space, health, cleanup, external drives)",
+        3: "Operating system (Windows, macOS, Linux – updates, slowness, crashes)",
+        4: "Browser & web (Chrome, Edge, Firefox – loading, extensions, certificates)",
+        5: "Drivers & peripherals (USB, printer, webcam, Device Manager)",
+        6: "Power & battery (drain, charging, sleep, adapter)",
