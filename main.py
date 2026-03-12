@@ -1086,3 +1086,56 @@ def run_interactive(manager: SessionManager, state_path: Path) -> int:
                 for i, h in enumerate(get_hints(cat), 1):
                     print(f"{i}. {h}")
             elif cmd == "flow" and len(parts) >= 2:
+                for ln in get_flow(int(parts[1])):
+                    print(ln)
+            elif cmd == "list":
+                for sid in manager.list_session_ids():
+                    print(sid)
+            elif cmd == "get" and len(parts) >= 2:
+                s = manager.get_session(parts[1])
+                if s:
+                    print(f"Category: {s.category} ({get_category_label(s.category)}), Resolved: {s.resolved}, Steps: {s.step_count}")
+                else:
+                    print("Not found.")
+            elif cmd == "report" and len(parts) >= 2:
+                s = manager.get_session(parts[1])
+                if s:
+                    print(build_report(s))
+                else:
+                    print("Not found.")
+            elif cmd == "stats":
+                print(stats_summary(manager))
+            elif cmd == "issues" and len(parts) >= 2:
+                for i in get_common_issues(int(parts[1])):
+                    print(f"- {i}")
+            elif cmd == "resolutions" and len(parts) >= 2:
+                for r in get_resolution_snippets(int(parts[1])):
+                    print(f"- {r}")
+            elif cmd == "extended-hint" and len(parts) >= 2:
+                for h in get_extended_hints(int(parts[1])):
+                    print(f"- {h}")
+            elif cmd == "categories":
+                for c in range(1, CATEGORY_COUNT + 1):
+                    count = manager.state.category_counts.get(c, 0)
+                    print(f"{c}: {get_category_label(c)} = {count}")
+            elif cmd == "version":
+                print(get_version_string())
+            elif cmd == "help":
+                print(get_full_help())
+            elif cmd == "health":
+                print(session_health_summary(manager))
+            elif cmd == "recommend" and len(parts) >= 2:
+                s = manager.get_session(parts[1])
+                if s:
+                    print(recommend_next_action(s))
+                else:
+                    print("Not found.")
+            else:
+                print("Unknown command or missing args. Type help.")
+        except Exception as e:
+            print(f"Error: {e}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
