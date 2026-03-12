@@ -950,3 +950,71 @@ def main() -> int:
             print(f"{i}. {h}")
         return 0
 
+    if args.cmd == "flow":
+        for line in get_flow(args.category):
+            print(line)
+        return 0
+
+    if args.cmd == "list":
+        for sid in manager.list_session_ids():
+            print(sid)
+        return 0
+
+    if args.cmd == "get":
+        s = manager.get_session(args.session_id)
+        if not s:
+            print("Session not found.", file=sys.stderr)
+            return 1
+        print(f"Category: {s.category} ({get_category_label(s.category)})")
+        print(f"Resolved: {s.resolved}, Steps: {s.step_count}")
+        return 0
+
+    if args.cmd == "report":
+        s = manager.get_session(args.session_id)
+        if not s:
+            print("Session not found.", file=sys.stderr)
+            return 1
+        print(build_report(s))
+        return 0
+
+    if args.cmd == "stats":
+        print(stats_summary(manager))
+        return 0
+
+    if args.cmd == "issues":
+        for i in get_common_issues(args.category):
+            print(f"- {i}")
+        return 0
+
+    if args.cmd == "resolutions":
+        for r in get_resolution_snippets(args.category):
+            print(f"- {r}")
+        return 0
+
+    if args.cmd == "export":
+        out_path = getattr(args, "output", None) or state_path
+        manager.save(out_path)
+        print(f"Exported to {out_path}")
+        return 0
+
+    if args.cmd == "extended-hint":
+        for h in get_extended_hints(args.category):
+            print(f"- {h}")
+        return 0
+
+    if args.cmd == "version":
+        print(get_version_string())
+        return 0
+
+    if args.cmd == "categories":
+        for c in range(1, CATEGORY_COUNT + 1):
+            count = manager.state.category_counts.get(c, 0)
+            cap = manager.state.category_caps.get(c, MAX_SESSIONS_PER_CATEGORY)
+            print(f"{c}: {get_category_label(c)} (count={count}, cap={cap})")
+        return 0
+
+    if args.cmd == "help":
+        print(get_full_help())
+        return 0
+
+    if args.cmd == "export-session":
